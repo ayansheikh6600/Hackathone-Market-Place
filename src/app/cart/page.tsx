@@ -28,6 +28,7 @@ const Bag: React.FC = () => {
     dispatch(clearCart());
   };
  
+  console.log(items)
 
   const calculateSubtotal = () =>
     items.reduce((total:any, item:any) => total + item.price * item.quantity, 0);

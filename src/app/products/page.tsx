@@ -8,22 +8,25 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { AppDispatch } from '@/redux/store';
 import Product from '@/types/product';
+import LoadingCard from '@/shared/LoadingCard';
 
 
 
 
-const ProductsPage  = () => {
+const ProductsPage = () => {
 
-  const {products,loading} = useSelector((state:any)=>state.products)
+  const { products, loading } = useSelector((state: any) => state.products)
   const dispatch = useDispatch<AppDispatch>()
 
-  useEffect(()=>{
-    (async()=>{
+  useEffect(() => {
+    (async () => {
 
       const res = await dispatch(fetchProducts())
-      console.log(res)
+      // console.log(res)
     })()
-  },[])
+  }, [])
+
+  // console.log(products)
 
   return (
     <div className="py-12 bg-white">
@@ -31,7 +34,9 @@ const ProductsPage  = () => {
 
         <h2 className="text-3xl font-bold text-start text-black mb-8">All Products</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
-          {products.map((product:any, index:number) => (
+          {!products?.length ? Array.from({ length: 4 }).map((_, index) => (
+            <LoadingCard key={index} />
+          )) : products?.map((product: any, index: number) => (
             <Link href={`/products/${product?._id}`} key={index}>
               <ProductCard  {...product} />
             </Link>
@@ -59,9 +64,13 @@ const ProductsPage  = () => {
           <h2 className="text-3xl font-semibold mb-">Follow products and discounts on Instagram</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">
-            {products.map((product:Product, index:number) => index <= 3 && (
-              <ProductCard key={index} {...product} />
-            ))}
+            {!products?.length ? Array.from({ length: 6 }).map((_, index) => (
+              <LoadingCard key={index} />
+            ))
+
+              : products.map((product: Product, index: number) => index <= 3 && (
+                <ProductCard key={index} {...product} />
+              ))}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { Provider } from 'react-redux'
 import Header from './Header'
 import Footer from './Footer'
 import store from '@/redux/store'
+import { ToastContainer, toast } from 'react-toastify';
 
 const Layout = ({children}:any) => {
   return (
@@ -14,6 +15,7 @@ const Layout = ({children}:any) => {
 
         <Header/>
         {children}
+        <ToastContainer />
         <Footer />
       </div>
       </Provider>

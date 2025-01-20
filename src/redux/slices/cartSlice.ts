@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { toast } from 'react-toastify';
 
 // Define the structure of a cart item
 interface CartItem {
@@ -41,12 +42,16 @@ const cartSlice = createSlice({
           quantity: 1,
           totalPrice: newItem.price,
         });
+        toast("Add Item Successfully")
+        
       } else {
         // Update quantity and total price of the existing item
         existingItem.quantity++;
         existingItem.totalPrice += newItem.price;
+        toast("Item Already and Increase QTY")
       }
 
+     
       // Update total quantity and amount
       state.totalQuantity++;
       state.totalAmount += newItem.price;

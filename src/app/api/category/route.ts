@@ -7,18 +7,11 @@ export async function GET(req:any) {
   try {
     
 
-    // Fetch products from Sanity
-    const products = await client.fetch(
-      `*[_type == "product"]{
+    // Fetch categories from Sanity
+    const categories = await client.fetch(
+      `*[_type == "category"]{
         _id,
         name,
-        price,
-        "category": category->name,
-        stock,
-        description,
-        featured,
-        orignalPrice,
-        badge,
         "imageUrl": image.asset->url
       }`
     );
@@ -27,7 +20,7 @@ export async function GET(req:any) {
 
     // Return the response
     return NextResponse.json(
-      { success: true, data: products },
+      { success: true, data: categories },
       { status: 200 }
     );
   } catch (error:any) {

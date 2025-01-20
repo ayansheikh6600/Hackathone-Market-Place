@@ -9,7 +9,7 @@ import Product from "@/types/product";
 
 const ProductCard: React.FC<Product> = ({ imageUrl, name, price, orignalPrice, badge, _id }) => {
 
-  const item = { imageUrl, title:name, price, orignalPrice, badge, id:_id }
+  const item = { imageUrl, title:name, price:orignalPrice, orignalPrice, badge, id:_id }
 
   const dispatch = useDispatch()
   return (
@@ -39,7 +39,7 @@ const ProductCard: React.FC<Product> = ({ imageUrl, name, price, orignalPrice, b
         <div className="flex items-center justify-start space-x-2">
           <p className=" font-bold">{orignalPrice}</p>
           {price && (
-            <p className="text-gray-500 line-through text-sm">{price}</p>
+            <p className="text-gray-500 line-through text-sm">{price||0}</p>
           )}
         </div>
       </div>

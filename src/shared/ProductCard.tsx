@@ -4,12 +4,16 @@ import Image, { StaticImageData } from "next/image";
 import { useDispatch } from "react-redux";
 import { addToCart } from "@/redux/slices/cartSlice";
 import Product from "@/types/product";
+import Link from "next/link";
+import { CiHeart } from "react-icons/ci";
+import { addToWhiteList } from "@/redux/slices/whiteListSlice";
 
 
 
 const ProductCard: React.FC<Product> = ({ imageUrl, name, price, orignalPrice, badge, _id }) => {
 
   const item = { imageUrl, title:name, price:orignalPrice, orignalPrice, badge, id:_id }
+  console.log(item)
 
   const dispatch = useDispatch()
   return (
@@ -35,7 +39,9 @@ const ProductCard: React.FC<Product> = ({ imageUrl, name, price, orignalPrice, b
 
       {/* Content */}
       <div className="p-4 text-start text-black">
-        <h3 className="text-lg font-semibold text-[#007580]">{name}</h3>
+        <Link href={`/products/${_id}`}>
+        <h3 className="text-lg font-semibold cursor-pointer text-[#007580]">{name}</h3>
+        </Link>
         <div className="flex items-center justify-start space-x-2">
           <p className=" font-bold">{orignalPrice}</p>
           {price && (
@@ -89,6 +95,9 @@ const ProductCard: React.FC<Product> = ({ imageUrl, name, price, orignalPrice, b
             strokeLinejoin="round"
           />
         </svg>
+      </div>
+      <div onClick={()=>dispatch(addToWhiteList(item))} className="absolute bottom-2 cursor-pointer right-12 bg-gray-200 rounded-full p-2 hover:bg-[#029FAE]">
+      <CiHeart className="" size={24} />
       </div>
 
     </div>

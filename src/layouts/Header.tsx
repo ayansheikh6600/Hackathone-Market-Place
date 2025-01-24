@@ -5,6 +5,7 @@ import logo from '@/assets/Logo.png';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import SearchBar from '@/shared/SearchBar';
 
 const Header = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -79,12 +80,19 @@ const Header = () => {
                         <Link href="/about" className="text-gray-600 hover:text-gray-900 py-2 md:py-0">
                             About
                         </Link>
+                        <Link href="/whitelist" className="text-gray-600 hover:text-gray-900 py-2 md:py-0">
+                            White List
+                        </Link>
                     </nav>
 
+                   
+                   <div className='flex gap-2 items-center'>
+                  
                     {/* Contact Info */}
                     <p className="text-gray-500 text-sm mt-4 md:mt-0">
                         Contact: <span className="font-medium">(808) 555-0111</span>
                     </p>
+                   </div>
                 </div>
             </div>
         </header>

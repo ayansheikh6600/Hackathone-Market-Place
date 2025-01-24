@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import chairImage from '@/assets/chair.png'; // Replace with the correct image path
 import Badge from '@/shared/Badge';
+import Link from 'next/link';
 
 const HeroSection = ()=> {
   return (
@@ -13,10 +14,10 @@ const HeroSection = ()=> {
             Best Furniture Collection For Your Interior.
           </h1>
           <div className="mt-6">
-            <button className="px-6 py-3 bg-teal-500 text-white rounded-lg shadow hover:bg-teal-600 transition flex items-center">
+            <Link href={"/cart"} className="px-6 py-3 w-fit bg-teal-500 text-white rounded-lg shadow hover:bg-teal-600 transition flex items-center">
               Shop Now
               <span className="ml-2 text-lg font-bold">→</span>
-            </button>
+            </Link>
           </div>
         </div>
 

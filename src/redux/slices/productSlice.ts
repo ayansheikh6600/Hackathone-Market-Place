@@ -2,12 +2,10 @@ import Product from '@/types/product';
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Define the structure of a product
-
-
 // Define the structure of the state
 interface ProductsState {
   products: Product[];
+  filteredProducts: Product[]; // For search results
   product: Product | null; // For single product
   loading: boolean;
   error: string | null;
@@ -16,6 +14,7 @@ interface ProductsState {
 // Initial state for the slice
 const initialState: ProductsState = {
   products: [],
+  filteredProducts: [], // Initialize empty for search results
   product: null,
   loading: false,
   error: null,
@@ -51,7 +50,27 @@ export const fetchProductById = createAsyncThunk<Product, string, { rejectValue:
 const productsSlice = createSlice({
   name: 'products',
   initialState,
-  reducers: {}, // Add custom reducers if needed
+  reducers: {
+    // Reducer to handle search
+    searchProducts: (state, action: PayloadAction<string>) => {
+      const query = action.payload.toLowerCase();
+      state.filteredProducts = state.products.filter(product =>
+        product.name.toLowerCase().includes(query) || // Search by name
+        product.description?.toLowerCase().includes(query) // Search by description if available
+      );
+    },
+    filterByCategory: (state, action: PayloadAction<string>) => {
+      const category = action.payload;
+      if (category === 'All') {
+        state.filteredProducts = state.products; // Reset to all products
+      } else {
+        state.filteredProducts = state.products.filter(product => product.category === category);
+      }
+    },
+    clearSearch: (state) => {
+      state.filteredProducts = state.products; // Reset filtered products to all products
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Fetch all products
@@ -62,6 +81,7 @@ const productsSlice = createSlice({
       .addCase(fetchProducts.fulfilled, (state, action: PayloadAction<Product[]>) => {
         state.loading = false;
         state.products = action.payload;
+        state.filteredProducts = action.payload; // Initialize filteredProducts
       })
       .addCase(fetchProducts.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.loading = false;
@@ -84,4 +104,6 @@ const productsSlice = createSlice({
   },
 });
 
+// Export actions and reducer
+export const { searchProducts, clearSearch, filterByCategory } = productsSlice.actions;
 export default productsSlice.reducer;

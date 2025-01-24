@@ -1,124 +1,236 @@
-"use client"
+"use client";
 import { clearCart, removeFromCart } from "@/redux/slices/cartSlice";
+import axios from "axios";
+import { headers } from "next/headers";
+import Image from "next/image";
+import Link from "next/link";
 import React, { useState } from "react";
 import { FaHeart, FaTrashAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 
-interface BagItem {
-  id: number;
-  name: string;
-  size: string;
-  quantity: number;
-  price: number;
-  image: string;
-}
-
 const Bag: React.FC = () => {
- 
-
-
-  const { items, totalQuantity, totalAmount } = useSelector((state:any) => state.cart);
+  const { items } = useSelector((state: any) => state.cart);
   const dispatch = useDispatch();
 
-  const handleRemoveFromCart = (id:any) => {
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [shippingDetails, setShippingDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null);
+
+
+  const [address, setAddress] = useState({
+    name: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    cityLocality: "",
+    stateProvince: "",
+    postalCode: "",
+    countryCode: "US",
+    addressResidentialIndicator: "no", // Default to commercial
+  });
+
+  const handleRemoveFromCart = (id: any) => {
     dispatch(removeFromCart(id));
   };
 
   const handleClearCart = () => {
     dispatch(clearCart());
   };
- 
-  console.log(items)
 
   const calculateSubtotal = () =>
-    items.reduce((total:any, item:any) => total + item.price * item.quantity, 0);
+    items.reduce((total: any, item: any) => total + item.price * item.quantity, 0);
+
+  const handleShippingCalculation = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const packages = items.map((item: any) => ({
+        weight: { value: item.weight || 16, unit: "ounce" },
+        dimensions: {
+          length: item.length || 10,
+          width: item.width || 8,
+          height: item.height || 4,
+          unit: "inch",
+        },
+      }));
+
+      // const response = await fetch("/api/shipping/calculate", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ shipeToAddress: address, packages }),
+      // });
+
+      const response = await axios.post("/api/shipping/calculate", { shipeToAddress: address, packages }, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      // if (response) {
+      //   throw new Error("Failed to fetch shipping rates");
+      // }
+
+      // const data =  response.json();
+      // setShippingDetails(data.shipmentDetails);
+      setShippingDetails(response.data.shipmentDetails.rateResponse.rates);
+      console.log(response.data.shipmentDetails.rateResponse.rates);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If cart is empty, display a message
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-700">Your Cart is Empty</h2>
+          <p className="text-gray-500 mb-6">Add items to your cart to see them here.</p>
+          <Link href="/products">
+            <button className="bg-[#029FAE] text-white py-2 px-4 rounded hover:bg-[#02a0aec9]">
+              Browse Products
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex justify-center">
-      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Bag Items Section */}
-        <div className="md:col-span-2">
-          <h2 className="text-2xl font-semibold mb-6">Bag</h2>
-          <div className="space-y-6">
-            {items.map((item:any) => (
-              <div key={item.id} className="sm:flex items-start sm:space-x-4 border-b pb-4 justify-between">
-                <div className="flex items-center space-x-4  pb-4">
+    <div>
+      <div className="bg-gray-50 p-6 flex justify-center">
+        <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Bag Items Section */}
+          <div className="md:col-span-2">
+            <h2 className="text-2xl font-semibold mb-6">Bag</h2>
+            <div className="space-y-6">
+              {items.map((item: any) => (
+                <div key={item.id} className="sm:flex items-start sm:space-x-4 border-b pb-4 justify-between">
+                  <div className="flex items-center space-x-4 pb-4">
+                    <Image
+                      width={1200}
+                      height={200}
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-24 h-24 object-cover rounded"
+                    />
+                    <div className="flex-1 flex flex-col gap-1 text-[#272343]">
+                      <h3 className="text-lg font-semibold">{item.title}</h3>
+                      <div className="sm:flex items-center text-sm text-gray-500 sm:space-x-4">
+                        <p>Quantity: {item.quantity}</p>
+                      </div>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <button className="text-gray-500 hover:text-red-500">
+                          <FaHeart />
+                        </button>
+                        <button
+                          className="text-gray-500 hover:text-red-500"
+                          onClick={() => handleRemoveFromCart(item.id)}
+                        >
+                          <FaTrashAlt />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold">Price: ${item.price}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-24 h-24 object-cover rounded"
-                />
-                <div className="flex-1 flex flex-col gap-1 text-[#272343]">
-                  <h3 className="text-lg font-semibold">{item.title}</h3>
-                  <p className="text-sm text-[#757575]">Ashen Slate/Cobalt Bliss</p>
-                  <div className="sm:flex items-center text-sm text-gray-500 sm:space-x-4">
-                    <p>
-                      Size:{" "}
-                      <input
-                        type="text"
-                        value={"L"}
-                       
-                        className="w-12 bg-transparent border-b text-center"
-                      />
-                    </p>
-                    <p>
-                      Quantity:{" "}
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        min={1}
-                       
-                        className="w-12 bg-transparent border-b text-center"
-                      />
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-4 mt-2">
-                    <button className="text-gray-500 hover:text-red-500">
-                      <FaHeart />
-                    </button>
-                    <button
-                      className="text-gray-500 hover:text-red-500"
-                      onClick={() => handleRemoveFromCart(item.id)}
-                    >
-                      <FaTrashAlt />
-                    </button>
-                  </div>
+          {/* Summary Section */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-6">Summary</h2>
+            <div className="rounded p-6 space-y-4">
+              <div className="flex justify-between">
+                <p>Subtotal</p>
+                <p className="font-semibold">${calculateSubtotal().toFixed(2)}</p>
+              </div>
+              <div className="flex justify-between">
+                <p>Shipping Cost</p>
+                <p className="font-semibold">
+                  {/* {loading ? "Calculating..." : shippingDetails ? `$${shippingDetails.total}` : "Not calculated"} */}
+                  {selectedShippingOption ? `$${selectedShippingOption.shippingAmount.amount}` : "Not selected"}
+                </p>
+              </div>
+              <hr />
+              <div className="flex justify-between">
+                <p>Total</p>
+                <p className="font-bold text-lg">
+                  $ ${(calculateSubtotal() + (selectedShippingOption?.shippingAmount.amount || 0)).toFixed(2)}
+                </p>
+              </div>
+              <hr />
+              <button
+                className="w-full bg-[#029FAE] text-white py-3 rounded-full px-4 hover:bg-[#02a0aec9]"
+                onClick={() => setShowCheckout(true)}
+              >
+                Member Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Checkout Form */}
+      {(showCheckout && !shippingDetails) && (
+        <div className="bg-gray-50 p-6 w-full mx-auto">
+          <h3 className="text-lg font-bold mb-4">Shipping Address</h3>
+          <form className="space-y-4">
+            {["name", "phone", "addressLine1", "addressLine2", "cityLocality", "stateProvince", "postalCode"].map(
+              (field) => (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-gray-600">{field}</label>
+                  <input
+                    type="text"
+                    value={address[field as keyof typeof address]}
+                    onChange={(e) => setAddress({ ...address, [field]: e.target.value })}
+                    className="w-full border rounded p-2"
+                  />
                 </div>
-                  
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold">MRP: ${item.price}</p>
-                </div>
+              )
+            )}
+            <button
+              type="button"
+              onClick={handleShippingCalculation}
+              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+            >
+              Calculate Shipping
+            </button>
+          </form>
+        </div>
+      )}
+
+      {shippingDetails?.length > 0 && (
+        <div className="bg-gray-50 p-6 w-full  mx-auto">
+          <h3 className="text-lg font-bold mb-4">Select a Shipping Option</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {shippingDetails.map((option: any) => (
+              <div
+                key={option.id}
+                className={`border p-4 rounded cursor-pointer ${selectedShippingOption?.rateId === option.rateId ? "border-blue-500" : "border-gray-300"
+                  }`}
+                onClick={() => setSelectedShippingOption(option)}
+              >
+                <h4 className="text-lg font-semibold">{option.serviceType}</h4>
+                <p className="text-gray-600">Delivery Time: {option.deliveryDays} Day</p>
+                <p className="font-bold">${option.shippingAmount.amount}</p>
               </div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Summary Section */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-6">Summary</h2>
-          <div className="rounded p-6 space-y-4 ">
-            <div className="flex justify-between">
-              <p>Subtotal</p>
-              <p className="font-semibold">${calculateSubtotal().toFixed(2)}</p>
-            </div>
-            <div className="flex justify-between">
-              <p>Estimated Delivery & Handling</p>
-              <p className="font-semibold">Free</p>
-            </div>
-            <hr />
-            <div className="flex justify-between">
-              <p>Total</p>
-              <p className="font-bold text-lg">${calculateSubtotal().toFixed(2)}</p>
-            </div>
-            <hr />
-            <button className="w-full bg-[#029FAE] text-white py-3 rounded-full px-4 hover:bg-[#02a0aec9] focus:outline-none">
-              Member Checkout
-            </button>
-          </div>
-        </div>
-      </div>
+
+      {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
     </div>
   );
 };

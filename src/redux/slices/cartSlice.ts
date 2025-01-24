@@ -8,6 +8,7 @@ interface CartItem {
   price: number;
   quantity: number;
   totalPrice: number;
+  imageUrl:string
 }
 
 // Define the structure of the cart state
@@ -29,7 +30,7 @@ const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    addToCart(state, action: PayloadAction<{ id: string; title: string; price: number }>) {
+    addToCart(state, action: PayloadAction<{ id: string; title: string; price: number, imageUrl:string }>) {
       const newItem = action.payload;
       const existingItem = state.items.find((item) => item.id === newItem.id);
 
@@ -41,6 +42,7 @@ const cartSlice = createSlice({
           price: newItem.price,
           quantity: 1,
           totalPrice: newItem.price,
+          imageUrl : newItem.imageUrl
         });
         toast("Add Item Successfully")
         

@@ -1,9 +1,33 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 
-export const calculateShipping = createAsyncThunk(
+// Define types for shipping parameters and state
+interface ShippingParams {
+  address: string;
+  items: Array<{ id: string; quantity: number }>;
+}
+
+interface ShippingState {
+  shippingCost: number;
+  loading: boolean;
+  error: string | null;
+}
+
+// Initial state
+const initialState: ShippingState = {
+  shippingCost: 0,
+  loading: false,
+  error: null,
+};
+
+// Define async thunk with proper typing
+export const calculateShipping = createAsyncThunk<
+  number, // Return type of fulfilled action
+  ShippingParams, // Argument type
+  { rejectValue: string } // Rejected value type
+>(
   "shipping/calculate",
-  async ({ address, items }: any, { rejectWithValue }) => {
+  async ({ address, items }, { rejectWithValue }) => {
     try {
       const response = await axios.post("/api/shipping/calculate", { address, items });
       return response.data.shippingCost;
@@ -13,9 +37,10 @@ export const calculateShipping = createAsyncThunk(
   }
 );
 
+// Create slice
 const shippingSlice = createSlice({
   name: "shipping",
-  initialState: { shippingCost: 0, loading: false, error: null },
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -23,13 +48,13 @@ const shippingSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(calculateShipping.fulfilled, (state, action) => {
+      .addCase(calculateShipping.fulfilled, (state, action: PayloadAction<number>) => {
         state.loading = false;
         state.shippingCost = action.payload;
       })
-      .addCase(calculateShipping.rejected, (state, action) => {
+      .addCase(calculateShipping.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || "An unknown error occurred";
       });
   },
 });

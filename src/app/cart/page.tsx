@@ -165,7 +165,7 @@ const Bag: React.FC = () => {
               <div className="flex justify-between">
                 <p>Total</p>
                 <p className="font-bold text-lg">
-                  $ ${(calculateSubtotal() + (selectedShippingOption?.shippingAmount.amount || 0)).toFixed(2)}
+                   ${(calculateSubtotal() + (selectedShippingOption?.shippingAmount.amount || 0)).toFixed(2)}
                 </p>
               </div>
               <hr />
@@ -180,11 +180,14 @@ const Bag: React.FC = () => {
         </div>
       </div>
 
+
+<div className="bg-gray-50 w-full">
+
       {/* Checkout Form */}
       {(showCheckout && !shippingDetails) && (
-        <div className="bg-gray-50 p-6 w-full mx-auto">
+        <div className="bg-gray-50 p-6 w-full max-w-7xl mx-auto">
           <h3 className="text-lg font-bold mb-4">Shipping Address</h3>
-          <form className="space-y-4">
+          <form className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {["name", "phone", "addressLine1", "addressLine2", "cityLocality", "stateProvince", "postalCode"].map(
               (field) => (
                 <div key={field}>
@@ -198,13 +201,16 @@ const Bag: React.FC = () => {
                 </div>
               )
             )}
+            <div className="flex items-end justify-end">
+
             <button
               type="button"
               onClick={handleShippingCalculation}
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-            >
+              className="bg-[#029FAE] text-white py-2 px-4 rounded hover:bg-[#02a0aec9]"
+              >
               Calculate Shipping
             </button>
+              </div>
           </form>
         </div>
       )}
@@ -232,6 +238,8 @@ const Bag: React.FC = () => {
 
       {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
     </div>
+</div>
+
   );
 };
 

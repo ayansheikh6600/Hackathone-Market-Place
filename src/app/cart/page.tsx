@@ -1,16 +1,21 @@
 "use client";
 import { clearCart, removeFromCart } from "@/redux/slices/cartSlice";
+import PaymentPage from "@/widgets/Checkout";
 import axios from "axios";
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { FaHeart, FaTrashAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const Bag: React.FC = () => {
   const { items } = useSelector((state: any) => state.cart);
   const dispatch = useDispatch();
+
+  const navigate = useRouter()
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [shippingDetails, setShippingDetails] = useState<any>(null);
@@ -18,6 +23,12 @@ const Bag: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [shippingOptions, setShippingOptions] = useState<any[]>([]);
   const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null);
+
+  const {user} = useSelector((state:any)=>state.auth)
+
+  const [checkPage, setCheckPage]= useState(false)
+
+  
 
 
   const [address, setAddress] = useState({
@@ -84,6 +95,30 @@ const Bag: React.FC = () => {
       setLoading(false);
     }
   };
+
+
+  const handleCheckout = async()=>{
+
+    console.log(user)
+
+    if(!user){
+      toast.error("Please First Login")
+      return navigate.replace("/login")
+    }
+
+    if(!showCheckout){
+      setShowCheckout(true)
+    }else if(
+      !address.addressLine1 || !address.cityLocality || !address.stateProvince || !address.postalCode || !address.name ||
+      !address.phone
+    ){
+      return toast.error("Please Fill All The Fields")
+    }else{
+      handleShippingCalculation()
+    }
+
+
+  }
 
   // If cart is empty, display a message
   if (items.length === 0) {
@@ -171,7 +206,7 @@ const Bag: React.FC = () => {
               <hr />
               <button
                 className="w-full bg-[#029FAE] text-white py-3 rounded-full px-4 hover:bg-[#02a0aec9]"
-                onClick={() => setShowCheckout(true)}
+                onClick={handleCheckout}
               >
                 Member Checkout
               </button>
@@ -215,7 +250,7 @@ const Bag: React.FC = () => {
         </div>
       )}
 
-      {shippingDetails?.length > 0 && (
+      {!checkPage && shippingDetails?.length > 0 && (
         <div className="bg-gray-50 p-6 w-full  mx-auto">
           <h3 className="text-lg font-bold mb-4">Select a Shipping Option</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -224,7 +259,7 @@ const Bag: React.FC = () => {
                 key={option.id}
                 className={`border p-4 rounded cursor-pointer ${selectedShippingOption?.rateId === option.rateId ? "border-blue-500" : "border-gray-300"
                   }`}
-                onClick={() => setSelectedShippingOption(option)}
+                onClick={() => {setSelectedShippingOption(option), setCheckPage(true)}}
               >
                 <h4 className="text-lg font-semibold">{option.serviceType}</h4>
                 <p className="text-gray-600">Delivery Time: {option.deliveryDays} Day</p>
@@ -237,6 +272,13 @@ const Bag: React.FC = () => {
 
 
       {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+
+
+
+{
+  checkPage && <PaymentPage/>
+}
+
     </div>
 </div>
 

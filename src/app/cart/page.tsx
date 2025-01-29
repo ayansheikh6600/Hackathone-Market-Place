@@ -1,6 +1,7 @@
 "use client";
 import { clearCart, removeFromCart } from "@/redux/slices/cartSlice";
 import { fetchShippingOptions, setAddress, setSelectedShippingOption } from "@/redux/slices/shippingSlice";
+import { AppDispatch } from "@/redux/store";
 import PaymentPage from "@/widgets/Checkout";
 import axios from "axios";
 import { headers } from "next/headers";
@@ -17,7 +18,7 @@ const Bag: React.FC = () => {
   const { user } = useSelector((state: any) => state.auth);
   const { address, shippingDetails, selectedShippingOption, loading, error } = useSelector((state: any) => state.shipping);
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkPage, setCheckPage] = useState(false);

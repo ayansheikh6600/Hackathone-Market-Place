@@ -53,6 +53,9 @@ function CheckoutForm() {
       const { paymentData, redirectUrl } = await response.json();
 
       if (paymentMethod === "card") {
+        if (!cardElement) {
+          return toast.error("Card details are not entered properly.");
+        }
         const { paymentIntent, error } = await stripe.confirmCardPayment(paymentData?.clientSecret, {
           payment_method: { card: cardElement },
         });

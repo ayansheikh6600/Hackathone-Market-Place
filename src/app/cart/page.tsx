@@ -1,5 +1,6 @@
 "use client";
 import { clearCart, removeFromCart } from "@/redux/slices/cartSlice";
+import { fetchShippingOptions, setAddress, setSelectedShippingOption } from "@/redux/slices/shippingSlice";
 import PaymentPage from "@/widgets/Checkout";
 import axios from "axios";
 import { headers } from "next/headers";
@@ -13,35 +14,15 @@ import { toast } from "react-toastify";
 
 const Bag: React.FC = () => {
   const { items } = useSelector((state: any) => state.cart);
+  const { user } = useSelector((state: any) => state.auth);
+  const { address, shippingDetails, selectedShippingOption, loading, error } = useSelector((state: any) => state.shipping);
+
   const dispatch = useDispatch();
-
-  const navigate = useRouter()
-
+  const navigate = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
-  const [shippingDetails, setShippingDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
-  const [selectedShippingOption, setSelectedShippingOption] = useState<any>(null);
+  const [checkPage, setCheckPage] = useState(false);
 
-  const {user} = useSelector((state:any)=>state.auth)
-
-  const [checkPage, setCheckPage]= useState(false)
-
-  
-
-
-  const [address, setAddress] = useState({
-    name: "",
-    phone: "",
-    addressLine1: "",
-    addressLine2: "",
-    cityLocality: "",
-    stateProvince: "",
-    postalCode: "",
-    countryCode: "US",
-    addressResidentialIndicator: "no", // Default to commercial
-  });
+  console.log(selectedShippingOption)
 
   const handleRemoveFromCart = (id: any) => {
     dispatch(removeFromCart(id));
@@ -49,76 +30,29 @@ const Bag: React.FC = () => {
 
   const handleClearCart = () => {
     dispatch(clearCart());
-  };
+  };;
+
 
   const calculateSubtotal = () =>
     items.reduce((total: any, item: any) => total + item.price * item.quantity, 0);
 
-  const handleShippingCalculation = async () => {
-    setLoading(true);
-    setError(null);
+  const handleCheckout = async () => {
 
-    try {
-      const packages = items.map((item: any) => ({
-        weight: { value: item.weight || 16, unit: "ounce" },
-        dimensions: {
-          length: item.length || 10,
-          width: item.width || 8,
-          height: item.height || 4,
-          unit: "inch",
-        },
-      }));
 
-      // const response = await fetch("/api/shipping/calculate", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ shipeToAddress: address, packages }),
-      // });
+    
+    if (!user) {
+      toast.error("Please First Login");
+      return navigate.replace("/login");
+    }
 
-      const response = await axios.post("/api/shipping/calculate", { shipeToAddress: address, packages }, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-
-      // if (response) {
-      //   throw new Error("Failed to fetch shipping rates");
-      // }
-
-      // const data =  response.json();
-      // setShippingDetails(data.shipmentDetails);
-      setShippingDetails(response.data.shipmentDetails.rateResponse.rates);
-      console.log(response.data.shipmentDetails.rateResponse.rates);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+    if (!showCheckout) {
+      setShowCheckout(true);
+    } else if (!address.addressLine1 || !address.cityLocality || !address.stateProvince || !address.postalCode || !address.name || !address.phone) {
+      return toast.error("Please Fill All The Fields");
+    } else {
+      dispatch(fetchShippingOptions());
     }
   };
-
-
-  const handleCheckout = async()=>{
-
-    console.log(user)
-
-    if(!user){
-      toast.error("Please First Login")
-      return navigate.replace("/login")
-    }
-
-    if(!showCheckout){
-      setShowCheckout(true)
-    }else if(
-      !address.addressLine1 || !address.cityLocality || !address.stateProvince || !address.postalCode || !address.name ||
-      !address.phone
-    ){
-      return toast.error("Please Fill All The Fields")
-    }else{
-      handleShippingCalculation()
-    }
-
-
-  }
 
   // If cart is empty, display a message
   if (items.length === 0) {
@@ -217,11 +151,22 @@ const Bag: React.FC = () => {
 
 
 <div className="bg-gray-50 w-full">
-
+{
+  console.log(user)
+}
       {/* Checkout Form */}
       {(showCheckout && !shippingDetails) && (
         <div className="bg-gray-50 p-6 w-full max-w-7xl mx-auto">
           <h3 className="text-lg font-bold mb-4">Shipping Address</h3>
+          <div>
+          <label className="block text-sm font-medium text-gray-600">Name</label>
+          <input
+            type="text"
+            value={user?.name} // Use name directly from user state
+            disabled // Make it non-editable if needed
+            className="w-full border rounded p-2 bg-gray-100 cursor-not-allowed"
+          />
+        </div>
           <form className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {["name", "phone", "addressLine1", "addressLine2", "cityLocality", "stateProvince", "postalCode"].map(
               (field) => (
@@ -230,7 +175,7 @@ const Bag: React.FC = () => {
                   <input
                     type="text"
                     value={address[field as keyof typeof address]}
-                    onChange={(e) => setAddress({ ...address, [field]: e.target.value })}
+                    onChange={(e) => dispatch(setAddress({ [field]: e.target.value }))}
                     className="w-full border rounded p-2"
                   />
                 </div>
@@ -240,10 +185,10 @@ const Bag: React.FC = () => {
 
             <button
               type="button"
-              onClick={handleShippingCalculation}
-              className="bg-[#029FAE] text-white py-2 px-4 rounded hover:bg-[#02a0aec9]"
+              onClick={handleCheckout}
+              className={`bg-[#029FAE] text-white py-2 px-4 rounded hover:bg-[#02a0aec9] ${loading && "animate-pulse"}`}
               >
-              Calculate Shipping
+              {loading? "Calculating..." : "Calculate Shipping"}
             </button>
               </div>
           </form>
@@ -254,12 +199,12 @@ const Bag: React.FC = () => {
         <div className="bg-gray-50 p-6 w-full  mx-auto">
           <h3 className="text-lg font-bold mb-4">Select a Shipping Option</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            {shippingDetails.map((option: any) => (
+            {shippingDetails.map((option: any, key:number) => (
               <div
-                key={option.id}
+                key={key}
                 className={`border p-4 rounded cursor-pointer ${selectedShippingOption?.rateId === option.rateId ? "border-blue-500" : "border-gray-300"
                   }`}
-                onClick={() => {setSelectedShippingOption(option), setCheckPage(true)}}
+                onClick={() => {dispatch(setSelectedShippingOption(option)), setCheckPage(true)}}
               >
                 <h4 className="text-lg font-semibold">{option.serviceType}</h4>
                 <p className="text-gray-600">Delivery Time: {option.deliveryDays} Day</p>

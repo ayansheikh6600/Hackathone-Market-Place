@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { motion } from "framer-motion";
+import { clearCart } from "@/redux/slices/cartSlice";
+import { toast } from "react-toastify";
 
 // Load the public key
 const stripePromise = loadStripe("pk_test_51QVeYlEKe5DEHcrDsh7VQ82JlEaNpxEO92F43JyQ2AIa9ieorNuhVIinJLIdFzYkGz4e7Yjcf7fFBqFSih473fkg00bkgTBvSd");
@@ -12,8 +16,17 @@ function CheckoutForm() {
   const elements = useElements();
   const [paymentStatus, setPaymentStatus] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
-  const handleSubmit = async (event) => {
+  const dispatch = useDispatch()
+
+  // Get cart data from Redux store
+  const { items, totalAmount } = useSelector((state:any) => state.cart);
+  const { address, shippingDetails, selectedShippingOption, loading, error } = useSelector((state: any) => state.shipping);
+
+  const total = totalAmount + selectedShippingOption?.shippingAmount.amount
+
+  const handleSubmit = async (event:any) => {
     event.preventDefault();
     setIsLoading(true);
 
@@ -22,35 +35,40 @@ function CheckoutForm() {
     const cardElement = elements.getElement(CardElement);
 
     try {
-      // Fetch the payment intent client secret from the server
       const response = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 50000, currency: "usd" }), // $50 in cents
+        body: JSON.stringify({
+          amount: total * 100, // Convert to cents
+          currency: "usd",
+          paymentMethodType: paymentMethod,
+          items, // Send cart items for backend processing
+        }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to create payment intent");
       }
 
-      const { paymentData } = await response.json();
+      const { paymentData, redirectUrl } = await response.json();
 
-      console.log(paymentData);
-      
+      if (paymentMethod === "card") {
+        const { paymentIntent, error } = await stripe.confirmCardPayment(paymentData?.clientSecret, {
+          payment_method: { card: cardElement },
+        });
 
-      // Confirm the card payment
-      const { paymentIntent, error } = await stripe.confirmCardPayment(paymentData?.clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
-      });
+        if (error) {
+          setPaymentStatus(`Payment failed: ${error.message}`);
+        } else if (paymentIntent) {
 
-      if (error) {
-        setPaymentStatus(`Payment failed: ${error.message}`);
-      } else if (paymentIntent) {
-        setPaymentStatus("Payment successful!");
+          dispatch(clearCart())
+          toast.success("Order placed successfully");
+          setPaymentStatus("Payment successful!");
+        }
+      } else if (redirectUrl) {
+        window.location.href = redirectUrl;
       }
-    } catch (error) {
+    } catch (error:any) {
       setPaymentStatus(`Error: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -58,45 +76,79 @@ function CheckoutForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 bg-white shadow-md rounded text-black">
-      <div className="mb-4">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: "16px",
-                color: "#424770",
-                "::placeholder": {
-                  color: "#aab7c4",
-                },
-              },
-              invalid: {
-                color: "#9e2146",
-              },
-            },
-          }}
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={!stripe || isLoading}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+    <div className="container mx-auto">
+      <motion.div
+        className="w-full mx-auto p-6 bg-white shadow-lg rounded-lg text-black border border-gray-300"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        {isLoading ? "Processing..." : "Pay"}
-      </button>
-      {paymentStatus && <p className="mt-4 text-red-500">{paymentStatus}</p>}
-    </form>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Checkout</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <label className="block text-gray-700">
+              Payment Method:
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full mt-2 p-2 border border-gray-300 rounded-lg"
+              >
+                <option value="card">Credit/Debit Card</option>
+                <option value="paypal">PayPal</option>
+                <option value="klarna">Klarna</option>
+              </select>
+            </label>
+          </div>
+          {paymentMethod === "card" && (
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: "16px",
+                      color: "#424770",
+                      fontFamily: "Arial, sans-serif",
+                      "::placeholder": { color: "#aab7c4" },
+                    },
+                    invalid: { color: "#9e2146" },
+                  },
+                }}
+              />
+            </div>
+          )}
+          <motion.button
+            type="submit"
+            disabled={!stripe || isLoading}
+            className="px-5 py-3 bg-[#029FAE] w-fit text-white font-semibold rounded-lg hover:bg-teal-600 transition disabled:bg-gray-400"
+            whileTap={{ scale: 0.98 }}
+          >
+            {isLoading ? "Processing..." : `Pay $${total.toFixed(0)}`}
+          </motion.button>
+        </form>
+        {paymentStatus && (
+          <motion.p
+            className="mt-6 text-center font-medium text-red-500"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {paymentStatus}
+          </motion.p>
+        )}
+      </motion.div>
+    </div>
   );
 }
 
-// Wrap the form with Elements
 export default function PaymentPage() {
   return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
+    <div className="py-5 flex items-center justify-center bg-gray-100">
+      <Elements stripe={stripePromise}>
+        <CheckoutForm />
+      </Elements>
+    </div>
   );
 }
+
 
 
 

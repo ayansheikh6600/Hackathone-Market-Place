@@ -1,62 +1,102 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { RootState } from "../store";
 
-// Define types for shipping parameters and state
-interface ShippingParams {
-  address: string;
-  items: Array<{ id: string; quantity: number }>;
-}
-
-interface ShippingState {
-  shippingCost: number;
-  loading: boolean;
-  error: string | null;
-}
-
-// Initial state
-const initialState: ShippingState = {
-  shippingCost: 0,
+// Initial State
+const initialState = {
+  address: {
+    name: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    cityLocality: "Washington",
+    stateProvince: "DC",
+    postalCode: "20500",
+    countryCode: "US",
+    addressResidentialIndicator: "no",
+  },
+  shippingDetails: null,
+  selectedShippingOption: null,
   loading: false,
   error: null,
 };
 
-// Define async thunk with proper typing
-export const calculateShipping = createAsyncThunk<
-  number, // Return type of fulfilled action
-  ShippingParams, // Argument type
-  { rejectValue: string } // Rejected value type
->(
-  "shipping/calculate",
-  async ({ address, items }, { rejectWithValue }) => {
+
+
+
+// Thunk for Fetching Shipping Options
+export const fetchShippingOptions = createAsyncThunk(
+  "shipping/fetchShippingOptions",
+  async (_, { getState, rejectWithValue }) => {
+
+    const state = getState() as RootState
+    const { address } = state.shipping;
+    const { items } = state.cart;
+
+    const packages = items.map((item: any) => ({
+      weight: { value: item.weight || 16, unit: "ounce" },
+      dimensions: {
+        length: item.length || 10,
+        width: item.width || 8,
+        height: item.height || 4,
+        unit: "inch",
+      },
+    }));
+
     try {
-      const response = await axios.post("/api/shipping/calculate", { address, items });
-      return response.data.shippingCost;
+      const response = await axios.post("/api/shipping/calculate", {
+        shipeToAddress: address,
+        packages,
+      });
+
+      return response.data.shipmentDetails.rateResponse.rates;
     } catch (error: any) {
-      return rejectWithValue("Failed to calculate shipping cost");
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch shipping rates");
     }
   }
 );
 
-// Create slice
+// Shipping Slice
 const shippingSlice = createSlice({
   name: "shipping",
   initialState,
-  reducers: {},
+  reducers: {
+    setAddress: (state, action) => {
+      // console.log(action.payload)
+      state.address = { ...state.address, ...action.payload };
+    },
+    setSelectedShippingOption: (state, action) => {
+      console.log(action.payload)
+      state.selectedShippingOption = action.payload;
+    },
+    setSlect: (state, action) => {
+      console.log(action.payload)
+      state.selectedShippingOption = action.payload;
+    },
+    clearShippingState: (state) => {
+      // Reset the state to its initial values
+      Object.assign(state, initialState);
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(calculateShipping.pending, (state) => {
+      .addCase(fetchShippingOptions.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(calculateShipping.fulfilled, (state, action: PayloadAction<number>) => {
+      .addCase(fetchShippingOptions.fulfilled, (state, action) => {
         state.loading = false;
-        state.shippingCost = action.payload;
+        state.shippingDetails = action.payload;
       })
-      .addCase(calculateShipping.rejected, (state, action: PayloadAction<string | undefined>) => {
+      .addCase(fetchShippingOptions.rejected, (state:any, action) => {
         state.loading = false;
-        state.error = action.payload || "An unknown error occurred";
+        state.error = action.payload;
       });
   },
 });
 
+// Export Actions
+export const { setAddress, setSelectedShippingOption, setSlect } = shippingSlice.actions;
+
+// Export Reducer
 export default shippingSlice.reducer;

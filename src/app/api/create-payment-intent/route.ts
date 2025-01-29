@@ -131,7 +131,7 @@ const stripe = new Stripe(
 
 export const POST = async (req: Request) => {
   const body = await req.json();
-  const { amount, currency, paymentMethodType } = body;
+  const { amount, currency, paymentMethodType ,items} = body;
 
   if (!amount || !currency || !paymentMethodType) {
     return NextResponse.json(
@@ -164,7 +164,9 @@ export const POST = async (req: Request) => {
           {
             price_data: {
               currency,
-              product_data: { name: "Sample Product" },
+              product_data: { 
+                name: items.map((item: any) => item.name).join(", "), // Combine all product names
+              },
               unit_amount: amount, // Amount in smallest currency unit
             },
             quantity: 1,
